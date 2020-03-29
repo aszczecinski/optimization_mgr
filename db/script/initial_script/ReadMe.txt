@@ -1,0 +1,2 @@
+W celu utworzenia bazy danych należy uruchomić załączone skrypty zgodnie z kolejnością widoczną w nazwach plików. 
+W przypadku skryptów tworzących użytkownika na bazie Oracle należy dostosować parametry takie jak hasło i tablespace.
