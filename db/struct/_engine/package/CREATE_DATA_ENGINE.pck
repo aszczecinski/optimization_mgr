@@ -65,7 +65,7 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
     vValues varchar2(1000);
     vIter number(10);
   begin
-    select nvl(max(ID), 0) into vId from KLIENT;
+    select nvl(max(ID), 1) into vId from KLIENT;
     vIter := 0;
     /*for r in rObjCols('KLIENT') loop
       if vIter > 0 then
@@ -76,8 +76,9 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
     end loop;*/
     for r in rConfDict('ULICA', 'MIEJSCOWOSC', pNumberOfClients) loop
       vSql := 'INSERT INTO KLIENT (ID, ULICA_NUMER, KOD_MIASTO, MIASTO, NIP, REGON, DATA_UTWORZENIA, DATA_MODYFIKACJI)
-      VALUES (' || vId || ', ''' || r.VALUE1 || ' ' || (floor(dbms_random.value(1, 10*vId/2)+1)) || ''', '''|| (floor(dbms_random.value(10, 99)))|| '-' || (floor(dbms_random.value(100, 999))) || ''', ' || floor(dbms_random.value(1000000000, 9999999999)) || ', ' || floor(dbms_random.value(100000000, 999999999)) || ', ' || 'TO_DATE(''' ||TO_CHAR((SYSDATE - 10), 'YYYY-MM-DD HH24:MI:SS') || ''', ''YYYY-MM-DD HH24:MI:SS'')' || ', null)';
+      VALUES (' || vId || ', ''' || r.VALUE1 || ' ' || (floor(dbms_random.value(1, 10*vId/2)+1)) || ''', ''' || (floor(dbms_random.value(10, 99)))|| '-' || (floor(dbms_random.value(100, 999))) || ''', ''' || r.VALUE2 || ''', ' || floor(dbms_random.value(1000000000, 9999999999)) || ', ' || floor(dbms_random.value(100000000, 999999999)) || ', ' || 'TO_DATE(''' ||TO_CHAR((SYSDATE - 10), 'YYYY-MM-DD HH24:MI:SS') || ''', ''YYYY-MM-DD HH24:MI:SS'')' || ', null)';
       DBMS_OUTPUT.PUT_LINE(vSql);
+	  execute immediate vSql;
       vId := vId + 1;
     end loop;
   end;
