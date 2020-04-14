@@ -1,0 +1,17 @@
+CREATE TABLE "CONF_COL_PATTERNS"
+  ( "ID_CONFIG" NUMBER(10, 0) NOT NULL ENABLE,
+  "TABLE_NAME" VARCHAR2(30) NOT NULL ENABLE,
+  "COLUMN_NAME" VARCHAR2(30) NOT NULL ENABLE,
+  "PATTERN" VARCHAR2(500),
+  "START_VALUE" VARCHAR2(100)
+) ;
+
+ ALTER TABLE "CONF_COL_PATTERNS" ADD CONSTRAINT "PK_CONF_COL_PATT" PRIMARY KEY ("ID_CONFIG", "TABLE_NAME", "COLUMN_NAME")
+   USING INDEX  ENABLE;
+ COMMENT ON COLUMN "CONF_COL_PATTERNS"."ID_CONFIG" IS 'ID of configuration pattern for table';
+ COMMENT ON COLUMN "CONF_COL_PATTERNS"."TABLE_NAME" IS 'Table name which is configured for data creation engine';
+ COMMENT ON COLUMN "CONF_COL_PATTERNS"."COLUMN_NAME" IS 'Column name which is configured for data creation engine';
+ COMMENT ON COLUMN "CONF_COL_PATTERNS"."PATTERN" IS 'Pattern on which base values should be filled';
+ COMMENT ON COLUMN "CONF_COL_PATTERNS"."PATTERN" IS 'Value from which pattern should start working';
+
+ COMMENT ON TABLE "CONF_COL_PATTERNS" IS 'Table created for data creation engine. You can configure here the way of data should be inserted';
