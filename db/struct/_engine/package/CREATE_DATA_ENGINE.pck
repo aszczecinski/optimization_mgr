@@ -138,7 +138,7 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
           vSql := 'INSERT INTO ELEMENT_ZAMOWIENIA (ID, ID_ZAMOWIENIE, NAZWA_PRODUKTU, LICZBA, CENA_JEDNOSTKOWA_NETTO, STAWKA_VAT, UPUST)
           VALUES (' || ELEM_ZAM_SEQ.nextval || ', ' || r || ', ''' || 'I_' || DBMS_RANDOM.string('x',3) || ''', ' || ROUND(DBMS_RANDOM.VALUE(1,134)) || ', ' || ROUND(DBMS_RANDOM.VALUE(0.50,956.99), 2) || ', ' || 0.23 || ', null )';
         end if;
-       -- DBMS_OUTPUT.PUT_LINE(vSql);
+     --   DBMS_OUTPUT.PUT_LINE(vSql);
         execute immediate vSql;
       end loop;
     end loop;
@@ -156,7 +156,7 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
       where rownum <= pNumberOfOrders;
     CURSOR vOrderCurr is
       select ID from ZAMOWIENIE;
-    vSql VARCHAR2(500);
+    vSql VARCHAR2(4000);
     vId number;
     vMinIdOrder number;
   begin
@@ -192,7 +192,6 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
   */
   procedure fill_elem_of_invoice_table(pIdInvoice number) is
   begin
-    DBMS_OUTPUT.PUT_LINE('fill_elem_of_invoice_table Begin');
     MERGE INTO ELEMENT_FAKTURY ef
     USING ( SELECT f.ID as ID_FAKTURA, ez.NAZWA_PRODUKTU, ez.LICZBA, ez.CENA_JEDNOSTKOWA_NETTO, ez.STAWKA_VAT, ez.UPUST FROM FAKTURA f
       join ZAMOWIENIE z on f.ID_KLIENT = z.ID_KLIENT and z.ID_FAKTURA = f.ID
@@ -208,8 +207,7 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
        and ef.NAZWA_PRODUKTU = r.NAZWA_PRODUKTU
     WHEN NOT MATCHED THEN
     INSERT (ef.ID, ef.ID_FAKTURA, ef.NAZWA_PRODUKTU, ef.LICZBA, ef.CENA_JEDNOSTKOWA_NETTO, ef.STAWKA_VAT, ef.UPUST)
-    VALUES (ELEM_ZAM_SEQ.nextval, r.ID_FAKTURA, r.NAZWA_PRODUKTU, r.LICZBA, r.CENA_JEDNOSTKOWA_NETTO, r.STAWKA_VAT, r.UPUST);
-    DBMS_OUTPUT.PUT_LINE('fill_elem_of_invoice_table End');
+    VALUES (ELEM_FAK_SEQ.nextval, r.ID_FAKTURA, r.NAZWA_PRODUKTU, r.LICZBA, r.CENA_JEDNOSTKOWA_NETTO, r.STAWKA_VAT, r.UPUST);
   end;
 
   /**
@@ -220,7 +218,7 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
   begin
     MERGE INTO ZAMOWIENIE z
     USING FAKTURA f
-    ON (z.ID = f.ID_ZAMOWIENIA and z.ID_KLIENT = f.ID_KLIENT and z.ID_FAKTURA is null)
+    ON (z.ID = f.ID_ZAMOWIENIA and z.ID_KLIENT = f.ID_KLIENT)
     WHEN MATCHED THEN
       UPDATE SET z.ID_FAKTURA = f.ID
        WHERE z.ID = f.ID_ZAMOWIENIA
@@ -236,7 +234,8 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
   procedure FILL_INVOICE_TABLE(pNumberOfInvoices number) is
     CURSOR vClientCurr is
       select ID_KLIENT, ID_ZAMOWIENIA from (select k.ID as ID_KLIENT, z.ID as ID_ZAMOWIENIA from KLIENT k
-      join ZAMOWIENIE z on z.ID_KLIENT = k.ID order by dbms_random.value)
+      join ZAMOWIENIE z on z.ID_KLIENT = k.ID
+      where not exists (select ID_ZAMOWIENIA FROM FAKTURA where ID_ZAMOWIENIA = z.ID) order by dbms_random.value)
       where rownum <= pNumberOfInvoices;
 
     vMaxNum   VARCHAR2(10);
@@ -269,14 +268,14 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
       end loop;
       vCreationDate := SYSDATE - ROUND(DBMS_RANDOM.VALUE(1,300),1);
       insert into FAKTURA (ID, ID_KLIENT, ID_ZAMOWIENIA, NAZWA_KLIENTA, NR_FAKTURY, DATA_WYSTAWIENIA, DATA_PLATNOSCI, DATA_WYKONANIA_USLUGI, OPIS)
-          values (FAKTURA_SEQ.nextval, vIdC, vIdZ, vName || ' ' || vSurname, vMaxNum || TO_CHAR(vCreationDate, 'YYYY'), vCreationDate, vCreationDate + 2 , vCreationDate, null);
+          values (FAKTURA_SEQ.nextval, vIdC, vIdZ, vName || ' ' || vSurname, vMaxNum || '/' || TO_CHAR(vCreationDate, 'YYYY'), vCreationDate, vCreationDate + 2 , vCreationDate, null);
     end loop;
     close vClientCurr;
     commit;
 
     for r in rInvoice loop
-        fill_elem_of_invoice_table(r.ID);
         fill_order_info_invoice(r.ID);
+        fill_elem_of_invoice_table(r.ID);
     end loop;
     commit;
 
@@ -290,7 +289,7 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
   begin
     MERGE INTO ZAMOWIENIE z
     USING WYSYLKA w
-    ON (z.ID = w.ID_ZAMOWIENIE and z.ID_FAKTURA = w.ID_FAKTURA and z.DATA_WYSLANIA is null)
+    ON (z.ID = w.ID_ZAMOWIENIE and z.ID_FAKTURA = w.ID_FAKTURA)
     WHEN MATCHED THEN
       UPDATE SET z.DATA_WYSLANIA = SYSDATE
        WHERE z.ID = w.ID_ZAMOWIENIE
