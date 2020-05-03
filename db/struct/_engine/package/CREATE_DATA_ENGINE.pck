@@ -42,13 +42,14 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
  CURSOR rConfDict(pKey1 varchar2, pKey2 varchar2, pNumOfRec number) is
                  with streets as
                  (select ed1.KEY as KEY1, ed1.VALUE as VALUE1, 1 as prio, rownum as ord1 from CONF_EXAMPLE_DICT ed1
-                  where ed1.KEY = pKey1 and ROWNUM <= pNumOfRec),
+                  where ed1.KEY = pKey1 ORDER BY dbms_random.value),
                  cities as
                  (select ed2.KEY as KEY2, ed2.VALUE as VALUE2, 2 as prio, rownum as ord2 from CONF_EXAMPLE_DICT ed2
-                  where ed2.KEY = pKey2 and ROWNUM <= pNumOfRec)
+                  where ed2.KEY = pKey2 ORDER BY dbms_random.value)
                  select streets.KEY1, streets.VALUE1, cities.KEY2, cities.VALUE2 from dual
                    left join streets on 1=1
-                   left join cities on streets.ord1 = cities.ord2;
+                   left join cities on streets.ord1 = cities.ord2
+         where ROWNUM <= pNumOfRec;
 
  CURSOR rInvoice is
                 select f.id,
@@ -99,8 +100,8 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
     vId := vId + 1;
     for r in rConfDict('ULICA', 'MIEJSCOWOSC', pNumberOfClients) loop
       vSql := 'INSERT INTO KLIENT (ID, ULICA_NUMER, KOD_MIASTO, MIASTO, NIP, REGON, DATA_UTWORZENIA, DATA_MODYFIKACJI)
-      VALUES (' || vId || ', ''' || r.VALUE1 || ' ' || (floor(dbms_random.value(1, 10*vId/2)+1)) || ''', ''' || (floor(dbms_random.value(10, 99)))|| '-' || (floor(dbms_random.value(100, 999))) || ''', ''' || r.VALUE2 || ''', ' || floor(dbms_random.value(1000000000, 9999999999)) || ', ' || floor(dbms_random.value(100000000, 999999999)) || ', ' || 'TO_DATE(''' ||TO_CHAR(SYSDATE - ROUND(DBMS_RANDOM.VALUE(5,300),1), 'YYYY-MM-DD HH24:MI:SS') || ''', ''YYYY-MM-DD HH24:MI:SS'')' || ', null)';
-    --  DBMS_OUTPUT.PUT_LINE(vSql);
+      VALUES (' || vId || ', ''' || r.VALUE1 || ' ' || (floor(dbms_random.value(1, 1*vId/2)+1)) || ''', ''' || (floor(dbms_random.value(10, 99)))|| '-' || (floor(dbms_random.value(100, 999))) || ''', ''' || r.VALUE2 || ''', ' || floor(dbms_random.value(1000000000, 9999999999)) || ', ' || floor(dbms_random.value(100000000, 999999999)) || ', ' || 'TO_DATE(''' ||TO_CHAR(SYSDATE - ROUND(DBMS_RANDOM.VALUE(5,300),1), 'YYYY-MM-DD HH24:MI:SS') || ''', ''YYYY-MM-DD HH24:MI:SS'')' || ', null)';
+      --DBMS_OUTPUT.PUT_LINE(vSql);
       execute immediate vSql;
       vId := vId + 1;
     end loop;
@@ -114,31 +115,59 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
   procedure fill_elem_of_order_table(pMinIdOrder number, pIdOrder number, pMaxNumberOfElements number) is
     vSql VARCHAR2(4000);
     vMaxNumberOfElements number;
+    vProductName VARCHAR2(200);
+    vIdOrder NUMBER(10,0);
+    vCount NUMBER(6,0);
+    vPrice NUMBER(24,2);
+    vTax NUMBER(3,2);
+    vDiscount NUMBER(3,2);
   begin
     vMaxNumberOfElements := pMaxNumberOfElements;
     for r in pMinIdOrder..pIdOrder loop
       vMaxNumberOfElements := ROUND(DBMS_RANDOM.VALUE(1,vMaxNumberOfElements));--more random!
       for rr in 1..vMaxNumberOfElements loop
+        vIdOrder := r;
+        vTax := 0.23;
+        vDiscount := 0;
         if mod(rr,10) = 0 then
-          vSql := 'INSERT INTO ELEMENT_ZAMOWIENIA (ID, ID_ZAMOWIENIE, NAZWA_PRODUKTU, LICZBA, CENA_JEDNOSTKOWA_NETTO, STAWKA_VAT, UPUST)
-          VALUES (' || ELEM_ZAM_SEQ.nextval || ', ' || r || ', ''' || 'H_' || DBMS_RANDOM.string('x',3) || ''', ' || ROUND(DBMS_RANDOM.VALUE(1,14)) || ', ' || ROUND(DBMS_RANDOM.VALUE(5000,12000), 2) || ', ' || 0.23 || ', null )';
+          vProductName := 'H_' || DBMS_RANDOM.string('x',3);
+          vCount := ROUND(DBMS_RANDOM.VALUE(1,14));
+          vPrice := ROUND(DBMS_RANDOM.VALUE(5000,12000), 2);
         elsif mod(rr,7) = 0 then
-          vSql := 'INSERT INTO ELEMENT_ZAMOWIENIA (ID, ID_ZAMOWIENIE, NAZWA_PRODUKTU, LICZBA, CENA_JEDNOSTKOWA_NETTO, STAWKA_VAT, UPUST)
-          VALUES (' || ELEM_ZAM_SEQ.nextval || ', ' || r || ', ''' || 'M_' || DBMS_RANDOM.string('x',3) || ''', ' || ROUND(DBMS_RANDOM.VALUE(3,300)) || ', ' || ROUND(DBMS_RANDOM.VALUE(1,15), 2) || ', ' || 0.23 || ', null )';
+          vProductName := 'M_' || DBMS_RANDOM.string('x',3);
+          vCount := ROUND(DBMS_RANDOM.VALUE(3,300));
+          vPrice := ROUND(DBMS_RANDOM.VALUE(1,15), 2);
         elsif mod(rr,5) = 0 then
-          vSql := 'INSERT INTO ELEMENT_ZAMOWIENIA (ID, ID_ZAMOWIENIE, NAZWA_PRODUKTU, LICZBA, CENA_JEDNOSTKOWA_NETTO, STAWKA_VAT, UPUST)
-          VALUES (' || ELEM_ZAM_SEQ.nextval || ', ' || r || ', ''' || 'S_' || DBMS_RANDOM.string('x',3) || ''', ' || ROUND(DBMS_RANDOM.VALUE(2,34)) || ', ' || ROUND(DBMS_RANDOM.VALUE(134,777), 2) || ', ' || 0.23 || ', null )';
+          vProductName := 'S_' || DBMS_RANDOM.string('x',3);
+          vCount := ROUND(DBMS_RANDOM.VALUE(2,24));
+          vPrice := ROUND(DBMS_RANDOM.VALUE(134,777), 2);
         elsif mod(rr,3) = 0 then
-          vSql := 'INSERT INTO ELEMENT_ZAMOWIENIA (ID, ID_ZAMOWIENIE, NAZWA_PRODUKTU, LICZBA, CENA_JEDNOSTKOWA_NETTO, STAWKA_VAT, UPUST)
-          VALUES (' || ELEM_ZAM_SEQ.nextval || ', ' || r || ', ''' || 'B_' || DBMS_RANDOM.string('x',3) || ''', ' || ROUND(DBMS_RANDOM.VALUE(1,100)) || ', ' || ROUND(DBMS_RANDOM.VALUE(5000,12000), 2) || ', ' || 0.23 || ', null )';
+          vProductName := 'B_' || DBMS_RANDOM.string('x',3);
+          vCount := ROUND(DBMS_RANDOM.VALUE(1,100));
+          vPrice := ROUND(DBMS_RANDOM.VALUE(5000,12000), 2);
         elsif mod(rr,2) = 0 then
-          vSql := 'INSERT INTO ELEMENT_ZAMOWIENIA (ID, ID_ZAMOWIENIE, NAZWA_PRODUKTU, LICZBA, CENA_JEDNOSTKOWA_NETTO, STAWKA_VAT, UPUST)
-          VALUES (' || ELEM_ZAM_SEQ.nextval || ', ' || r || ', ''' || 'O_' || DBMS_RANDOM.string('x',3) || ''', ' || ROUND(DBMS_RANDOM.VALUE(1,5)) || ', ' || ROUND(DBMS_RANDOM.VALUE(1000,5000), 2) || ', ' || 0.23 || ', null )';
+          vProductName := 'O_' || DBMS_RANDOM.string('x',3);
+          vCount := ROUND(DBMS_RANDOM.VALUE(1,5));
+          vPrice := ROUND(DBMS_RANDOM.VALUE(1000,5000), 2);
         else
-          vSql := 'INSERT INTO ELEMENT_ZAMOWIENIA (ID, ID_ZAMOWIENIE, NAZWA_PRODUKTU, LICZBA, CENA_JEDNOSTKOWA_NETTO, STAWKA_VAT, UPUST)
-          VALUES (' || ELEM_ZAM_SEQ.nextval || ', ' || r || ', ''' || 'I_' || DBMS_RANDOM.string('x',3) || ''', ' || ROUND(DBMS_RANDOM.VALUE(1,134)) || ', ' || ROUND(DBMS_RANDOM.VALUE(0.50,956.99), 2) || ', ' || 0.23 || ', null )';
+          vProductName := 'I_' || DBMS_RANDOM.string('x',3);
+          vCount := ROUND(DBMS_RANDOM.VALUE(1,134));
+          vPrice := ROUND(DBMS_RANDOM.VALUE(0.50,956.99), 2);
         end if;
-     --   DBMS_OUTPUT.PUT_LINE(vSql);
+     vSql := 'merge into ELEMENT_ZAMOWIENIA ez
+     using (select ID_ZAMOWIENIE, NAZWA_PRODUKTU from ELEMENT_ZAMOWIENIA where ID_ZAMOWIENIE = ' || vIdOrder || ' and NAZWA_PRODUKTU = ''' || vProductName || ''') ez_curr
+     on (ez.ID_ZAMOWIENIE = ez_curr.ID_ZAMOWIENIE and ez.NAZWA_PRODUKTU = ez_curr.NAZWA_PRODUKTU)
+     when matched then
+       update set
+         LICZBA = ' || vCount ||',
+         CENA_JEDNOSTKOWA_NETTO = ' || vPrice ||',
+         STAWKA_VAT = ' || vTax ||',
+         UPUST = ' || vDiscount ||'
+     where NAZWA_PRODUKTU = ''' || vProductName || '''
+       and ID_ZAMOWIENIE = ' || vIdOrder ||'
+     when not matched then
+        INSERT (ID, ID_ZAMOWIENIE, NAZWA_PRODUKTU, LICZBA, CENA_JEDNOSTKOWA_NETTO, STAWKA_VAT, UPUST) VALUES (
+        ' || ELEM_ZAM_SEQ.nextval || ', ' || vIdOrder || ', ''' || vProductName || ''', ' ||  vCount || ', ' || vPrice || ', ' || vTax || ', ' || vDiscount || ')';
         execute immediate vSql;
       end loop;
     end loop;
@@ -161,14 +190,12 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
     vMinIdOrder number;
   begin
     open vClientCurr;
-  --  DBMS_OUTPUT.PUT_LINE('vClientCurr%ROWCOUNT :' || vClientCurr%ROWCOUNT);
     select max(ID) into vMinIdOrder from ZAMOWIENIE;
     loop
       fetch vClientCurr into vId;
       EXIT WHEN vClientCurr%NOTFOUND;
       vSql := 'INSERT INTO ZAMOWIENIE (ID, ID_KLIENT, ID_FAKTURA, DATA_UTWORZENIA)
       VALUES (' || ZAMOWIENIE_SEQ.nextval || ', ' || vId || ', null, TO_DATE(''' || TO_CHAR(SYSDATE - DBMS_RANDOM.VALUE(5,300), 'YYYY-MM-DD HH24:MI:SS') || ''', ''YYYY-MM-DD HH24:MI:SS'')' || ')';
-   --   DBMS_OUTPUT.PUT_LINE(vSql);
       execute immediate vSql;
     end loop;
     close vClientCurr;
@@ -194,8 +221,7 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
   begin
     MERGE INTO ELEMENT_FAKTURY ef
     USING ( SELECT f.ID as ID_FAKTURA, ez.NAZWA_PRODUKTU, ez.LICZBA, ez.CENA_JEDNOSTKOWA_NETTO, ez.STAWKA_VAT, ez.UPUST FROM FAKTURA f
-      join ZAMOWIENIE z on f.ID_KLIENT = z.ID_KLIENT and z.ID_FAKTURA = f.ID
-      join ELEMENT_ZAMOWIENIA ez on z.ID = ez.ID_ZAMOWIENIE
+      join ELEMENT_ZAMOWIENIA ez on f.ID_ZAMOWIENIA = ez.ID_ZAMOWIENIE
       where f.ID = pIdInvoice ) r
     ON (ef.ID_FAKTURA = r.ID_FAKTURA and ef.NAZWA_PRODUKTU = r.NAZWA_PRODUKTU)
     WHEN MATCHED THEN
@@ -250,10 +276,12 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
     vCreationDate DATE;
   begin
     open vClientCurr;
-    SELECT nvl(max(vMaxNum), '0') into vMaxNum from V_FAKTURA_ROK where ROK = vMaxYear;
+
     loop
       FETCH vClientCurr into vIdC, vIdZ;
       EXIT when vClientCurr%NOTFOUND;
+      vCreationDate := SYSDATE - ROUND(DBMS_RANDOM.VALUE(1,300),1);
+      SELECT nvl(max(vMaxNum), '0') into vMaxNum from V_FAKTURA_ROK where ROK = TO_CHAR(vCreationDate, 'YYYY');
       vMaxNum := to_number(vMaxNum) + 1;
       if mod(vMaxNum,2) = 0 then
         vParam1 := 'IMIE_M';
@@ -266,7 +294,6 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
         vName := r.VALUE1;
         vSurname := r.VALUE2;
       end loop;
-      vCreationDate := SYSDATE - ROUND(DBMS_RANDOM.VALUE(1,300),1);
       insert into FAKTURA (ID, ID_KLIENT, ID_ZAMOWIENIA, NAZWA_KLIENTA, NR_FAKTURY, DATA_WYSTAWIENIA, DATA_PLATNOSCI, DATA_WYKONANIA_USLUGI, OPIS)
           values (FAKTURA_SEQ.nextval, vIdC, vIdZ, vName || ' ' || vSurname, vMaxNum || '/' || TO_CHAR(vCreationDate, 'YYYY'), vCreationDate, vCreationDate + 2 , vCreationDate, null);
     end loop;
