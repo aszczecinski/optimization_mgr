@@ -20,10 +20,6 @@ prompt 01_create_user.sql
 @01_create_user.sql
 
 prompt ...
-prompt 01_create_user.sql
-@01_create_user.sql
-
-prompt ...
 prompt 02_create_core_tables.sql
 @02_create_core_tables.sql
 
