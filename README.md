@@ -11,6 +11,9 @@ Badanie wydajności mechanizmów zapytań do baz danych
 Autor: Adam Szczeciński
 Promotor: dr inż. Włodzimierz Dąbrowski
 
+Instrukcja instalacji środowiska na podstawie kodu dostępnego w repozytorium znajduje się w następującym katalogu:
+optimization_mgr/db/script/initial_script/ReadMe.txt
+
 # optimization_mgr [ENG]
 Repository created for database optimization analysis.
 Created by Adam Szczeciński
@@ -22,3 +25,6 @@ Examination of database query mechanisms performance
 
 Autor: Adam Szczeciński
 Promoter: EngD Włodzimierz Dąbrowski
+
+The installation instruction of environment based on code available in this repository is stored in the following directory:
+optimization_mgr/db/script/initial_script/ReadMe.txt
