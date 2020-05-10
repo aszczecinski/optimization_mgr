@@ -47,8 +47,8 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
                  (select ed2.KEY as KEY2, ed2.VALUE as VALUE2, 2 as prio, rownum as ord2 from CONF_EXAMPLE_DICT ed2
                   where ed2.KEY = pKey2 ORDER BY dbms_random.value)
                  select streets.KEY1, streets.VALUE1, cities.KEY2, cities.VALUE2 from dual
-                   left join streets on 1=1
-                   left join cities on streets.ord1 = cities.ord2
+                   join streets on 1=1
+                   join cities on streets.ord1 = cities.ord2
          where ROWNUM <= pNumOfRec;
 
  CURSOR rInvoice is
@@ -72,7 +72,8 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
                        k.miasto
                        from FAKTURA f
                        join ZAMOWIENIE z on f.Id_Zamowienia = z.ID
-                       join KLIENT k on f.Id_Klient = k.ID order by f.ID asc;
+                       join KLIENT k on f.Id_Klient = k.ID 
+                       where not exists (select 1 from WYSYLKA where ID_FAKTURA = f.ID) order by f.ID asc;
 
 
   /**
@@ -154,21 +155,13 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
           vCount := ROUND(DBMS_RANDOM.VALUE(1,134));
           vPrice := ROUND(DBMS_RANDOM.VALUE(0.50,956.99), 2);
         end if;
-     vSql := 'merge into ELEMENT_ZAMOWIENIA ez
-     using (select ID_ZAMOWIENIE, NAZWA_PRODUKTU from ELEMENT_ZAMOWIENIA where ID_ZAMOWIENIE = ' || vIdOrder || ' and NAZWA_PRODUKTU = ''' || vProductName || ''') ez_curr
-     on (ez.ID_ZAMOWIENIE = ez_curr.ID_ZAMOWIENIE and ez.NAZWA_PRODUKTU = ez_curr.NAZWA_PRODUKTU)
-     when matched then
-       update set
-         LICZBA = ' || vCount ||',
-         CENA_JEDNOSTKOWA_NETTO = ' || vPrice ||',
-         STAWKA_VAT = ' || vTax ||',
-         UPUST = ' || vDiscount ||'
-     where NAZWA_PRODUKTU = ''' || vProductName || '''
-       and ID_ZAMOWIENIE = ' || vIdOrder ||'
-     when not matched then
-        INSERT (ID, ID_ZAMOWIENIE, NAZWA_PRODUKTU, LICZBA, CENA_JEDNOSTKOWA_NETTO, STAWKA_VAT, UPUST) VALUES (
-        ' || ELEM_ZAM_SEQ.nextval || ', ' || vIdOrder || ', ''' || vProductName || ''', ' ||  vCount || ', ' || vPrice || ', ' || vTax || ', ' || vDiscount || ')';
+        
+        vSql := 'INSERT INTO ELEMENT_ZAMOWIENIA (ID, ID_ZAMOWIENIE, NAZWA_PRODUKTU, LICZBA, CENA_JEDNOSTKOWA_NETTO, STAWKA_VAT, UPUST) 
+        SELECT ' || ELEM_ZAM_SEQ.nextval || ', ' || vIdOrder || ', ''' || vProductName || ''', ' ||  vCount || ', ' || vPrice || ', ' || vTax || ', ' || vDiscount || ' from dual
+        where not exists (select 1 from ELEMENT_ZAMOWIENIA where ID_ZAMOWIENIE = ' || vIdOrder || ' and NAZWA_PRODUKTU = ''' || vProductName || ''')';
+		
         execute immediate vSql;
+
       end loop;
     end loop;
     commit;
@@ -184,33 +177,36 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
       select ID from (select ID from KLIENT order by dbms_random.value)
       where rownum <= pNumberOfOrders;
     CURSOR vOrderCurr is
-      select ID from ZAMOWIENIE;
+      select max(ID) from ZAMOWIENIE;
     vSql VARCHAR2(4000);
     vId number;
     vMinIdOrder number;
+    vIdOrder number;
   begin
     open vClientCurr;
     select max(ID) into vMinIdOrder from ZAMOWIENIE;
     loop
       fetch vClientCurr into vId;
       EXIT WHEN vClientCurr%NOTFOUND;
+      vIdOrder := ZAMOWIENIE_SEQ.nextval;
       vSql := 'INSERT INTO ZAMOWIENIE (ID, ID_KLIENT, ID_FAKTURA, DATA_UTWORZENIA)
-      VALUES (' || ZAMOWIENIE_SEQ.nextval || ', ' || vId || ', null, TO_DATE(''' || TO_CHAR(SYSDATE - DBMS_RANDOM.VALUE(5,300), 'YYYY-MM-DD HH24:MI:SS') || ''', ''YYYY-MM-DD HH24:MI:SS'')' || ')';
+      VALUES (' || vIdOrder || ', ' || vId || ', null, TO_DATE(''' || TO_CHAR(SYSDATE - DBMS_RANDOM.VALUE(5,300), 'YYYY-MM-DD HH24:MI:SS') || ''', ''YYYY-MM-DD HH24:MI:SS'')' || ')';
       execute immediate vSql;
+      fill_elem_of_order_table(vIdOrder, vIdOrder, nvl(pMaxNumberOfElements, ROUND(DBMS_RANDOM.VALUE(5,30))));
     end loop;
     close vClientCurr;
     commit;
 
     --create entries in elements of order table
     --if pMaxNumberOfElements is null then use random value
-    open vOrderCurr;
+    /*open vOrderCurr;
     loop
       fetch vOrderCurr into vId;
       EXIT when vOrderCurr%NOTFOUND;
       fill_elem_of_order_table(vMinIdOrder, vId, nvl(pMaxNumberOfElements, ROUND(DBMS_RANDOM.VALUE(5,30))));
     end loop;
     close vOrderCurr;
-    commit;
+    commit;*/
   end;
 
   /**
@@ -219,21 +215,12 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
   */
   procedure fill_elem_of_invoice_table(pIdInvoice number) is
   begin
-    MERGE INTO ELEMENT_FAKTURY ef
-    USING ( SELECT f.ID as ID_FAKTURA, ez.NAZWA_PRODUKTU, ez.LICZBA, ez.CENA_JEDNOSTKOWA_NETTO, ez.STAWKA_VAT, ez.UPUST FROM FAKTURA f
-      join ELEMENT_ZAMOWIENIA ez on f.ID_ZAMOWIENIA = ez.ID_ZAMOWIENIE
-      where f.ID = pIdInvoice ) r
-    ON (ef.ID_FAKTURA = r.ID_FAKTURA and ef.NAZWA_PRODUKTU = r.NAZWA_PRODUKTU)
-    WHEN MATCHED THEN
-      UPDATE SET ef.LICZBA = r.LICZBA,
-      ef.CENA_JEDNOSTKOWA_NETTO = r.CENA_JEDNOSTKOWA_NETTO,
-      ef.STAWKA_VAT = r.STAWKA_VAT,
-      ef.UPUST = r.UPUST
-       WHERE ef.ID_FAKTURA = r.ID_FAKTURA
-       and ef.NAZWA_PRODUKTU = r.NAZWA_PRODUKTU
-    WHEN NOT MATCHED THEN
-    INSERT (ef.ID, ef.ID_FAKTURA, ef.NAZWA_PRODUKTU, ef.LICZBA, ef.CENA_JEDNOSTKOWA_NETTO, ef.STAWKA_VAT, ef.UPUST)
-    VALUES (ELEM_FAK_SEQ.nextval, r.ID_FAKTURA, r.NAZWA_PRODUKTU, r.LICZBA, r.CENA_JEDNOSTKOWA_NETTO, r.STAWKA_VAT, r.UPUST);
+    INSERT INTO ELEMENT_FAKTURY (ID, ID_FAKTURA, NAZWA_PRODUKTU, LICZBA, CENA_JEDNOSTKOWA_NETTO, STAWKA_VAT, UPUST)
+    SELECT ELEM_FAK_SEQ.nextval, f.ID as ID_FAKTURA, ez.NAZWA_PRODUKTU, ez.LICZBA, ez.CENA_JEDNOSTKOWA_NETTO, ez.STAWKA_VAT, ez.UPUST FROM DUAL d
+    JOIN FAKTURA f on 1 = 1
+    JOIN ELEMENT_ZAMOWIENIA ez on f.ID_ZAMOWIENIA = ez.ID_ZAMOWIENIE
+    WHERE f.ID = pIdInvoice and not exists (select 1 from ELEMENT_FAKTURY where ID_FAKTURA = pIdInvoice and NAZWA_PRODUKTU = ez.NAZWA_PRODUKTU);
+    
   end;
 
   /**
@@ -330,8 +317,15 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
   *  invoices that will be created by the procedure
   */
   procedure FILL_SHIPMENT_TABLE(pNumberOfShipments number) is
+    vType number := 1;--'Typ wysyłki: 0 - odbiór w punkcie, 1 - kurier, 2 - listy, 3 - dowóz własny';
   begin
     for r in rInvoiceClientOrd loop
+      if mod(r.ID,2) = 0
+        then vType := 2;
+      elsif mod(r.ID,3) = 0
+        then vType := 2;
+      else vType := 1;
+      end if;
       insert into WYSYLKA
         (ID,
          ID_ZAMOWIENIE,
@@ -348,8 +342,8 @@ CREATE OR REPLACE PACKAGE BODY "CREATE_DATA_ENGINE" IS
          r.ulica_numer,
          r.kod_miasto,
          r.miasto,
-         1,
-         1);
+         vType,
+         vType);
        fill_order_info_shipment(r.ID);
     end loop;
     commit;
