@@ -22,3 +22,5 @@ CREATE TABLE "WYSYLKA"
  COMMENT ON COLUMN "WYSYLKA"."TYP" IS 'Typ wysyłki: 0 - odbiór w punkcie, 1 - kurier, 2 - listy, 3 - dowóz własny';
 
  COMMENT ON TABLE "WYSYLKA" IS 'Tabela przechowuje dane dotyczące wysyłki zamówienia';
+ CREATE INDEX "IDX_WYSYLKA_ID_ZAM" ON "WYSYLKA" ("ID_ZAMOWIENIE");
+ CREATE INDEX "IDX_WYSYLKA_ID_FAKT" ON "WYSYLKA" ("ID_FAKTURA");

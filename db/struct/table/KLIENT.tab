@@ -20,3 +20,4 @@ CREATE TABLE "KLIENT"
  COMMENT ON COLUMN "KLIENT"."DATA_MODYFIKACJI" IS 'Data modyfikacji danych klienta';
 
  COMMENT ON TABLE "KLIENT" IS 'Tabela przechowuje dane klienta';
+ CREATE INDEX "IDX_KLIENT_NIP" ON "KLIENT" ("NIP");
