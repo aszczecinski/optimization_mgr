@@ -20,6 +20,10 @@ prompt 01_create_user.sql
 @01_create_user.sql
 
 prompt ...
+prompt ALTER SESSION
+ALTER SESSION SET CURRENT_SCHEMA = "&&SCHEMA_NAME";
+
+prompt ...
 prompt 02_create_core_tables.sql
 @02_create_core_tables.sql
 
@@ -42,6 +46,11 @@ prompt 06_create_views.sql
 prompt ...
 prompt 07_create_engine_packages.sql
 @07_create_engine_packages.sql
+
+
+prompt ...
+prompt 08_create_engine_entries.sql
+@08_create_engine_entries.sql
 
 prompt Installation has successfully ended!
 prompt Please check logs and login to the installed schema.
