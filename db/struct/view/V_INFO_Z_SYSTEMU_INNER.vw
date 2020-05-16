@@ -2,7 +2,7 @@
  * Podstawowy widok, który łączy się ze wszystkimi tabelami przechowującymi 
  * dane powstałe przy wykorzystywaniu systemu
 **/
-CREATE OR REPLACE FORCE VIEW V_INFO_Z_SYSTEMU AS
+CREATE OR REPLACE FORCE VIEW V_INFO_Z_SYSTEMU_INNER AS
 select k.id                      as K_ID,
        k.ulica_numer             as K_ULICA_NUMER,
        k.kod_miasto              as K_KOD_MIASTO,
@@ -52,18 +52,18 @@ select k.id                      as K_ID,
        fl.data_utworzenia        as FL_DATA_UTWORZENIA,
        fl.id_faktura             as FL_ID_FAKUTRA
   from klient k
-  full join zamowienie z
+  join zamowienie z
     on z.id_klient = k.id
-  full join element_zamowienia ez
+  join element_zamowienia ez
     on ez.id_zamowienie = z.id
-  full join faktura f
+  join faktura f
     on f.id_zamowienia = z.id
    and f.id_klient = k.id
-  full join element_faktury ef
+  join element_faktury ef
     on ef.id_faktura = f.id
-  full join wysylka w
+  join wysylka w
     on w.id_faktura = f.id
-  full join faktura_log fl
+  join faktura_log fl
     on fl.id_faktura = f.id
  order by k.id,
           k.data_utworzenia,
