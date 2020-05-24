@@ -21,3 +21,4 @@ CREATE TABLE "ELEMENT_ZAMOWIENIA"
  COMMENT ON COLUMN "ELEMENT_ZAMOWIENIA"."UPUST" IS 'Upust do elementu faktury. Wartość procentowa, wyrażona w postaci liczby [x.xx]';
 
  COMMENT ON TABLE "ELEMENT_ZAMOWIENIA" IS 'Tabela przechowuje dane elementu faktury';
+ CREATE INDEX "IDX_EL_ZAM_ID_ZAM" ON "ELEMENT_ZAMOWIENIA" ("ID_ZAMOWIENIE");
