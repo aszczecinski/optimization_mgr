@@ -2,6 +2,7 @@
  * Podstawowy widok, który łączy się ze wszystkimi tabelami przechowującymi 
  * dane powstałe przy wykorzystywaniu systemu
  * zmiany: statystyki, inner join zamiast full, usunięte nadmiarowe kolumny, usunięty FAKTURA_LOG join i kolumny, zmodyfikowane sortowanie i indeks.
+ * Ten widok był wykorzystywany jako ostatni do weryfikacji zmian optymalizacyjnych.
 **/
 CREATE OR REPLACE FORCE VIEW V_INFO_Z_SYSTEMU_INNER_COL_3 AS
 select k.id                      as K_ID,
