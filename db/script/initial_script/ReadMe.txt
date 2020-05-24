@@ -9,6 +9,9 @@
  * After that the installation should start immediately. Please after 
  * script execution check the logs. They should be created in the
  * same directory.
+ * When the database is ready, you can fill it with sample data by 
+ * running the procedure available in the following path:
+ * optimization_mgr\other\skrypt_do_generowania_wpisow.sql
 **/
 
 /*
@@ -22,4 +25,8 @@
  * Instalacja powinna uruchomić się niezwłocznie. Po zakończonej instalacji
  * zweryfikuj logi. Pliki z informacjami powinny być dostępne
  * w tym samym katalogu.
+ * Jeśli baza danych została poprawnie zainstalowana, możesz uzupełnić ją
+ * przykładowymi danymi poprzez uruchomienie procedury znajdującej się 
+ * w następującym pliku:
+ * optimization_mgr\other\skrypt_do_generowania_wpisow.sql
 **/
